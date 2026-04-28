@@ -46,22 +46,6 @@ make_port() {
 	done
 }
 
-sub_port=$(make_port)
-panel_port=$(make_port)
-web_path=$(gen_random_string 10)
-sub2singbox_path=$(gen_random_string 10)
-# sub_path=$(gen_random_string 10)
-sub_path=${SUB_PATH:-$(gen_random_string 10)}
-json_path=$(gen_random_string 10)
-panel_path=$(gen_random_string 10)
-ws_port=$(make_port)
-trojan_port=$(make_port)
-ws_path=$(gen_random_string 10)
-trojan_path=$(gen_random_string 10)
-xhttp_path=$(gen_random_string 10)
-config_username=$(gen_random_string 10)
-config_password=$(gen_random_string 10)
-AUTODOMAIN="n"
 
 ##################################Random Port and Path #################################################
 #RNDSTR=$(tr -dc A-Za-z0-9 </dev/urandom | head -c "$(shuf -i 6-12 -n 1)")
@@ -85,9 +69,29 @@ while [ "$#" -gt 0 ]; do
     -websub) CUSTOMWEBSUB="$2"; shift 2;;
     -clash) CLASH="$2"; shift 2;;
     -uninstall) UNINSTALL="$2"; shift 2;;
+    -subpath) SUB_PATH="$2"; shift 2;;
+    -panelpath) PANEL_PATH="$2"; shift 2;;
     *) shift 1;;
   esac
 done
+
+
+sub_port=$(make_port)
+panel_port=$(make_port)
+web_path=$(gen_random_string 10)
+sub2singbox_path=$(gen_random_string 10)
+# sub_path=$(gen_random_string 10)
+sub_path=${SUB_PATH:-$(gen_random_string 10)}
+json_path=$(gen_random_string 10)
+panel_path=${PANEL_PATH:-$(gen_random_string 10)}
+ws_port=$(make_port)
+trojan_port=$(make_port)
+ws_path=$(gen_random_string 10)
+trojan_path=$(gen_random_string 10)
+xhttp_path=$(gen_random_string 10)
+config_username=$(gen_random_string 10)
+config_password=$(gen_random_string 10)
+AUTODOMAIN="n"
 
 
 ##############################Uninstall#################################################################
