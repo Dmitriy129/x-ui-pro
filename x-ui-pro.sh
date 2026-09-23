@@ -545,6 +545,88 @@ if [[ -f $XUIDB ]]; then
         client_id3=$(/usr/local/x-ui/bin/xray-linux-amd64 uuid)
 	trojan_pass=$(gen_random_string 10)
         emoji_flag=$(LC_ALL=en_US.UTF-8 curl -s https://ipwho.is/ | jq -r '.flag.emoji')
+
+        client_names=(fix nil avgusti ee tetsa markys sev sosnovskyy elli_zveg kitkat marinetti nastenana shared_qwe shared_bla shared_foo shared_x shared_banana fix fix-vps-vpn)
+        
+        email_postfix_1="_reality"
+        email_postfix_2="_ws"
+        email_postfix_3="_xhttp"
+        email_postfix_4="_trojan"
+
+        gen_client_traffics_sql() {
+            local name email
+            for name in "${client_names[@]}"; do
+                email="${name}${email_postfix_1}"
+                printf 'INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES (%s);\n' "'1','1','${email}','0','0','0','0','0'"
+                email="${name}${email_postfix_2}"
+                printf 'INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES (%s);\n' "'2','1','${email}','0','0','0','0','0'"
+                email="${name}${email_postfix_3}"
+                printf 'INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES (%s);\n' "'3','1','${email}','0','0','0','0','0'"
+                email="${name}${email_postfix_4}"
+                printf 'INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES (%s);\n' "'4','1','${email}','0','0','0','0','0'"
+            done
+        }
+
+        gen_vless_clients_json() {
+            local flow="$1"
+            local postfix="$2"
+            local i name email comma uuid
+            for i in "${!client_names[@]}"; do
+                name="${client_names[$i]}"
+                email="${name}${postfix}"
+                uuid=$(/usr/local/x-ui/bin/xray-linux-amd64 uuid)
+                comma=","
+                if [[ "$i" -eq $((${#client_names[@]} - 1)) ]]; then
+                    comma=""
+                fi
+                cat <<JSON
+    {
+      "id": "${uuid}",
+      "flow": "${flow}",
+      "email": "${email}",
+      "limitIp": 0,
+      "totalGB": 0,
+      "expiryTime": 0,
+      "enable": true,
+      "tgId": "",
+      "subId": "${name}",
+      "reset": 0,
+      "created_at": 1756726925000,
+      "updated_at": 1756726925000
+    }${comma}
+JSON
+            done
+        }
+
+        gen_trojan_clients_json() {
+            local postfix="$1"
+            local i name email comma
+            for i in "${!client_names[@]}"; do
+                name="${client_names[$i]}"
+                email="${name}${postfix}"
+                comma=","
+                if [[ "$i" -eq $((${#client_names[@]} - 1)) ]]; then
+                    comma=""
+                fi
+                cat <<JSON
+    {
+      "comment": "",
+      "created_at": 1756726925000,
+      "email": "${email}",
+      "enable": true,
+      "expiryTime": 0,
+      "limitIp": 0,
+      "password": "${trojan_pass}",
+      "reset": 0,
+      "subId": "${name}",
+      "tgId": 0,
+      "totalGB": 0,
+      "updated_at": 1756726925000
+    }${comma}
+JSON
+            done
+        }
+
        	sqlite3 $XUIDB <<EOF
              INSERT INTO "settings" ("key", "value") VALUES ("subPort",  '${sub_port}');
 	     INSERT INTO "settings" ("key", "value") VALUES ("subPath",  '/${sub_path}/');
@@ -586,10 +668,7 @@ if [[ -f $XUIDB ]]; then
 	     INSERT INTO "settings" ("key", "value") VALUES ("subJsonMux",  '');
              INSERT INTO "settings" ("key", "value") VALUES ("subJsonRules",  '');
 	     INSERT INTO "settings" ("key", "value") VALUES ("datepicker",  'gregorian');
-             INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES ('1','1','first','0','0','0','0','0');
-	     INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES ('2','1','first_1','0','0','0','0','0');
-		   INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES ('3','1','firstX','0','0','0','0','0');
-	     INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES ('4','1','firstT','0','0','0','0','0');
+             $(gen_client_traffics_sql)
              INSERT INTO "inbounds" ("user_id","up","down","total","remark","enable","expiry_time","listen","port","protocol","settings","stream_settings","tag","sniffing") VALUES ( 
              '1',
 	     '0',
@@ -603,21 +682,7 @@ if [[ -f $XUIDB ]]; then
 	     'vless',
              '{
 	     "clients": [
-    {
-      "id": "${client_id}",
-      "flow": "xtls-rprx-vision",
-      "email": "first",
-      "limitIp": 0,
-      "totalGB": 0,
-      "expiryTime": 0,
-      "enable": true,
-      "tgId": "",
-      "subId": "first",
-      "reset": 0,
-      "created_at": 1756726925000,
-      "updated_at": 1756726925000
-
-    }
+$(gen_vless_clients_json "xtls-rprx-vision" "${email_postfix_1}")
   ],
   "decryption": "none",
   "fallbacks": []
@@ -656,7 +721,7 @@ if [[ -f $XUIDB ]]; then
     ],
     "settings": {
       "publicKey": "${public_key}",
-      "fingerprint": "chrome",
+      "fingerprint": "random",
       "serverName": "",
       "spiderX": "/"
     }
@@ -694,21 +759,7 @@ if [[ -f $XUIDB ]]; then
 	     'vless',
              '{
   "clients": [
-    {
-      "id": "${client_id2}",
-      "flow": "",
-      "email": "first_1",
-      "limitIp": 0,
-      "totalGB": 0,
-      "expiryTime": 0,
-      "enable": true,
-      "tgId": "",
-      "subId": "first",
-      "reset": 0,
-      "created_at": 1756726925000,
-      "updated_at": 1756726925000
-
-    }
+$(gen_vless_clients_json "" "${email_postfix_2}")
   ],
   "decryption": "none",
   "fallbacks": []
@@ -749,27 +800,14 @@ if [[ -f $XUIDB ]]; then
              '0',
 	     '0',
              '${emoji_flag} xhttp',
-	     '0',
+	     '1',
              '0',
 	     '/dev/shm/uds2023.sock,0666',
              '0',
 	     'vless',
              '{
   "clients": [
-    {
-      "id": "${client_id3}",
-      "flow": "",
-      "email": "firstX",
-      "limitIp": 0,
-      "totalGB": 0,
-      "expiryTime": 0,
-      "enable": true,
-      "tgId": "",
-      "subId": "first",
-      "reset": 0,
-	  "created_at": 1756726925000,
-      "updated_at": 1756726925000
-    }
+$(gen_vless_clients_json "" "${email_postfix_3}")
   ],
   "decryption": "none",
   "fallbacks": []
@@ -839,20 +877,7 @@ if [[ -f $XUIDB ]]; then
 		 'trojan',
 		 '{
   "clients": [
-    {
-      "comment": "",
-      "created_at": 1756726925000,
-      "email": "firstT",
-      "enable": true,
-      "expiryTime": 0,
-      "limitIp": 0,
-      "password": "${trojan_pass}",
-      "reset": 0,
-      "subId": "first",
-      "tgId": 0,
-      "totalGB": 0,
-      "updated_at": 1756726925000
-    }
+$(gen_trojan_clients_json "${email_postfix_4}")
   ],
   "fallbacks": []
 }',
@@ -1155,8 +1180,11 @@ if systemctl is-active --quiet x-ui; then clear
  	echo -e "Username:  ${config_username} \n" 
 	echo -e "Password:  ${config_password} \n" 
 	msg_inf "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
-    msg_inf "Web Sub Page your first client: https://${domain}/${web_path}?name=first\n"
+    msg_inf "Web Sub Page your first client: https://${domain}/${web_path}?name=${client_names[0]}\n"
     msg_inf "Your local sub2sing-box instance: https://${domain}/$sub2singbox_path/\n"
+    msg_inf "Your local sub2sing-box instance: https://${domain}/$sub2singbox_path/\n"
+  msg_inf "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+	msg_inf "Subscription: https://${domain}/${sub_path}/${client_names[0]}"
   msg_inf "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
 	msg_inf "Please Save this Screen!!"	
 else
