@@ -52,8 +52,7 @@ web_path=$(gen_random_string 10)
 sub2singbox_path=$(gen_random_string 10)
 sub_path=$(gen_random_string 10)
 json_path=$(gen_random_string 10)
-# panel_path=$(gen_random_string 10)
-panel_path=${PANEL_PATH:-$(gen_random_string 10)}
+panel_path=$(gen_random_string 10)
 ws_port=$(make_port)
 trojan_port=$(make_port)
 ws_path=$(gen_random_string 10)
@@ -255,6 +254,7 @@ server {
     proxy_protocol on;
     set_real_ip_from unix:;
     listen          443;
+	listen         [::]:443;
     proxy_pass      \$sni_name;
     ssl_preread     on;
 }
@@ -291,7 +291,7 @@ server {
 	if (\$scheme ~* https) {set \$safe 1;}
 	if (\$ssl_server_name !~* ^(.+\.)?$domain\$ ) {set \$safe "\${safe}0"; }
 	if (\$safe = 10){return 444;}
-	if (\$request_uri ~ "(\"|'|\`|~|,|:|--|;|%|\\$|&&|\?\?|0x00|0X00|\||\\|\{|\}|\[|\]|<|>|\.\.\.|\.\.\/|\/\/\/)"){set \$hack 1;}
+	if (\$request_uri ~ "(\"|'|\`|~|,|:|;|%|\\$|&&|\?\?|0x00|0X00|\||\\|\{|\}|\[|\]|<|>|\.\.\.|\.\.\/|\/\/\/)"){set \$hack 1;}
 	error_page 400 401 402 403 500 501 502 503 504 =404 /404;
 	proxy_intercept_errors on;
 	#X-UI Admin Panel
@@ -479,7 +479,7 @@ server {
 	if (\$scheme ~* https) {set \$safe 1;}
 	if (\$ssl_server_name !~* ^(.+\.)?${reality_domain}\$ ) {set \$safe "\${safe}0"; }
 	if (\$safe = 10){return 444;}
-	if (\$request_uri ~ "(\"|'|\`|~|,|:|--|;|%|\\$|&&|\?\?|0x00|0X00|\||\\|\{|\}|\[|\]|<|>|\.\.\.|\.\.\/|\/\/\/)"){set \$hack 1;}
+	if (\$request_uri ~ "(\"|'|\`|~|,|:|;|%|\\$|&&|\?\?|0x00|0X00|\||\\|\{|\}|\[|\]|<|>|\.\.\.|\.\.\/|\/\/\/)"){set \$hack 1;}
 	error_page 400 401 402 403 500 501 502 503 504 =404 /404;
 	proxy_intercept_errors on;
 	#X-UI Admin Panel
@@ -533,102 +533,21 @@ if [[ -f $XUIDB ]]; then
         output=$(/usr/local/x-ui/bin/xray-linux-amd64 x25519)
 
         private_key=$(echo "$output" | grep "^PrivateKey:" | awk '{print $2}')
-        public_key=$(echo "$output" | grep "^Password:" | awk '{print $2}')
+        public_key=$(echo "$output" | grep "^Password" | awk '{print $3}')
 
         client_id=$(/usr/local/x-ui/bin/xray-linux-amd64 uuid)
         client_id2=$(/usr/local/x-ui/bin/xray-linux-amd64 uuid)
         client_id3=$(/usr/local/x-ui/bin/xray-linux-amd64 uuid)
-	      trojan_pass=$(gen_random_string 10)
+	trojan_pass=$(gen_random_string 10)
         emoji_flag=$(LC_ALL=en_US.UTF-8 curl -s https://ipwho.is/ | jq -r '.flag.emoji')
-
-        client_names=(fix nil avgusti ee tetsa markys sev sosnovskyy elli_zveg kitkat marinetti nastenana shared_1 shared_2 shared_3 shared_4 shared_5)
-        
-        email_postfix_1="_reality"
-        email_postfix_2="_ws"
-        email_postfix_3="_xhttp"
-        email_postfix_4="_trojan"
-
-        gen_client_traffics_sql() {
-            local name email
-            for name in "${client_names[@]}"; do
-                email="${name}${email_postfix_1}"
-                printf 'INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES (%s);\n' "'1','1','${email}','0','0','0','0','0'"
-                email="${name}${email_postfix_2}"
-                printf 'INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES (%s);\n' "'2','1','${email}','0','0','0','0','0'"
-                email="${name}${email_postfix_3}"
-                printf 'INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES (%s);\n' "'3','1','${email}','0','0','0','0','0'"
-                email="${name}${email_postfix_4}"
-                printf 'INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES (%s);\n' "'4','1','${email}','0','0','0','0','0'"
-            done
-        }
-
-        gen_vless_clients_json() {
-            local flow="$1"
-            local postfix="$2"
-            local i name email comma uuid
-            for i in "${!client_names[@]}"; do
-                name="${client_names[$i]}"
-                email="${name}${postfix}"
-                uuid=$(/usr/local/x-ui/bin/xray-linux-amd64 uuid)
-                comma=","
-                if [[ "$i" -eq $((${#client_names[@]} - 1)) ]]; then
-                    comma=""
-                fi
-                cat <<JSON
-    {
-      "id": "${uuid}",
-      "flow": "${flow}",
-      "email": "${email}",
-      "limitIp": 0,
-      "totalGB": 0,
-      "expiryTime": 0,
-      "enable": true,
-      "tgId": "",
-      "subId": "${name}",
-      "reset": 0,
-      "created_at": 1756726925000,
-      "updated_at": 1756726925000
-
-    }${comma}
-JSON
-            done
-        }
-
-        gen_trojan_clients_json() {
-            local postfix="$1"
-            local i name email comma
-            for i in "${!client_names[@]}"; do
-                name="${client_names[$i]}"
-                email="${name}${postfix}"
-                comma=","
-                if [[ "$i" -eq $((${#client_names[@]} - 1)) ]]; then
-                    comma=""
-                fi
-                cat <<JSON
-    {
-      "comment": "",
-      "created_at": 1756726925000,
-      "email": "${email}",
-      "enable": true,
-      "expiryTime": 0,
-      "limitIp": 0,
-      "password": "${trojan_pass}",
-      "reset": 0,
-      "subId": "${name}",
-      "tgId": 0,
-      "totalGB": 0,
-      "updated_at": 1756726925000
-    }${comma}
-JSON
-            done
-        }
-
        	sqlite3 $XUIDB <<EOF
              INSERT INTO "settings" ("key", "value") VALUES ("subPort",  '${sub_port}');
 	     INSERT INTO "settings" ("key", "value") VALUES ("subPath",  '/${sub_path}/');
 	     INSERT INTO "settings" ("key", "value") VALUES ("subURI",  '${sub_uri}');
              INSERT INTO "settings" ("key", "value") VALUES ("subJsonPath",  '${json_path}');
 	     INSERT INTO "settings" ("key", "value") VALUES ("subJsonURI",  '${json_uri}');
+		 INSERT INTO "settings" ("key", "value") VALUES ("subClashEnable",  'false');
+		 INSERT INTO "settings" ("key", "value") VALUES ("subEnableRouting",  'false');
              INSERT INTO "settings" ("key", "value") VALUES ("subEnable",  'true');
              INSERT INTO "settings" ("key", "value") VALUES ("webListen",  '');
 	     INSERT INTO "settings" ("key", "value") VALUES ("webDomain",  '');
@@ -662,7 +581,10 @@ JSON
 	     INSERT INTO "settings" ("key", "value") VALUES ("subJsonMux",  '');
              INSERT INTO "settings" ("key", "value") VALUES ("subJsonRules",  '');
 	     INSERT INTO "settings" ("key", "value") VALUES ("datepicker",  'gregorian');
-             $(gen_client_traffics_sql)
+             INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES ('1','1','first','0','0','0','0','0');
+	     INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES ('2','1','first_1','0','0','0','0','0');
+		   INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES ('3','1','firstX','0','0','0','0','0');
+	     INSERT INTO "client_traffics" ("inbound_id","enable","email","up","down","expiry_time","total","reset") VALUES ('4','1','firstT','0','0','0','0','0');
              INSERT INTO "inbounds" ("user_id","up","down","total","remark","enable","expiry_time","listen","port","protocol","settings","stream_settings","tag","sniffing") VALUES ( 
              '1',
 	     '0',
@@ -676,7 +598,21 @@ JSON
 	     'vless',
              '{
 	     "clients": [
-$(gen_vless_clients_json "xtls-rprx-vision" "${email_postfix_1}")
+    {
+      "id": "${client_id}",
+      "flow": "xtls-rprx-vision",
+      "email": "first",
+      "limitIp": 0,
+      "totalGB": 0,
+      "expiryTime": 0,
+      "enable": true,
+      "tgId": "",
+      "subId": "first",
+      "reset": 0,
+      "created_at": 1756726925000,
+      "updated_at": 1756726925000
+
+    }
   ],
   "decryption": "none",
   "fallbacks": []
@@ -715,7 +651,7 @@ $(gen_vless_clients_json "xtls-rprx-vision" "${email_postfix_1}")
     ],
     "settings": {
       "publicKey": "${public_key}",
-      "fingerprint": "random",
+      "fingerprint": "chrome",
       "serverName": "",
       "spiderX": "/"
     }
@@ -753,7 +689,21 @@ $(gen_vless_clients_json "xtls-rprx-vision" "${email_postfix_1}")
 	     'vless',
              '{
   "clients": [
-$(gen_vless_clients_json "" "${email_postfix_2}")
+    {
+      "id": "${client_id2}",
+      "flow": "",
+      "email": "first_1",
+      "limitIp": 0,
+      "totalGB": 0,
+      "expiryTime": 0,
+      "enable": true,
+      "tgId": "",
+      "subId": "first",
+      "reset": 0,
+      "created_at": 1756726925000,
+      "updated_at": 1756726925000
+
+    }
   ],
   "decryption": "none",
   "fallbacks": []
@@ -794,14 +744,27 @@ $(gen_vless_clients_json "" "${email_postfix_2}")
              '0',
 	     '0',
              '${emoji_flag} xhttp',
-	     '1',
+	     '0',
              '0',
 	     '/dev/shm/uds2023.sock,0666',
              '0',
 	     'vless',
              '{
   "clients": [
-$(gen_vless_clients_json "" "${email_postfix_3}")
+    {
+      "id": "${client_id3}",
+      "flow": "",
+      "email": "firstX",
+      "limitIp": 0,
+      "totalGB": 0,
+      "expiryTime": 0,
+      "enable": true,
+      "tgId": "",
+      "subId": "first",
+      "reset": 0,
+	  "created_at": 1756726925000,
+      "updated_at": 1756726925000
+    }
   ],
   "decryption": "none",
   "fallbacks": []
@@ -818,7 +781,7 @@ $(gen_vless_clients_json "" "${email_postfix_3}")
   ],
   "xhttpSettings": {
     "path": "/${xhttp_path}",
-    "host": "",
+    "host": "${domain}",
     "headers": {},
     "scMaxBufferedPosts": 30,
     "scMaxEachPostBytes": "1000000",
@@ -871,7 +834,20 @@ $(gen_vless_clients_json "" "${email_postfix_3}")
 		 'trojan',
 		 '{
   "clients": [
-$(gen_trojan_clients_json "${email_postfix_4}")
+    {
+      "comment": "",
+      "created_at": 1756726925000,
+      "email": "firstT",
+      "enable": true,
+      "expiryTime": 0,
+      "limitIp": 0,
+      "password": "${trojan_pass}",
+      "reset": 0,
+      "subId": "first",
+      "tgId": 0,
+      "totalGB": 0,
+      "updated_at": 1756726925000
+    }
   ],
   "fallbacks": []
 }',
@@ -947,7 +923,7 @@ apt-get update && apt-get install -y -q wget curl tar tzdata
             fi
         fi
         echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-        wget -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
+        wget -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/v2.9.4/x-ui-linux-$(arch).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
             exit 1
@@ -962,7 +938,7 @@ apt-get update && apt-get install -y -q wget curl tar tzdata
             exit 1
         fi
         
-        url="https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
+        url="https://github.com/MHSanaei/3x-ui/releases/download/v2.9.4/x-ui-linux-$(arch).tar.gz"
         echo -e "Beginning to install x-ui $1"
         wget -N -O /usr/local/x-ui-linux-$(arch).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
@@ -1091,7 +1067,20 @@ su -c "/usr/bin/sub2sing-box server --bind 127.0.0.1 --port 8080 & disown" root
 
 ######################install_fake_site#################################################################
 
-sudo su -c "bash <(wget -qO- https://raw.githubusercontent.com/mozaroc/x-ui-pro/refs/heads/master/randomfakehtml.sh)"
+FAKE_SITE_TMP=$(mktemp -d)
+if wget -qO "$FAKE_SITE_TMP/repo.tar.gz" "https://github.com/mozaroc/3x-ui-pro/archive/refs/heads/main.tar.gz" \
+	&& tar -xzf "$FAKE_SITE_TMP/repo.tar.gz" -C "$FAKE_SITE_TMP" --strip-components=3 "3x-ui-pro-main/assets/fake-sites"; then
+	FAKE_SITES=("$FAKE_SITE_TMP"/site-*/)
+	FAKE_SITE="${FAKE_SITES[$((RANDOM % ${#FAKE_SITES[@]}))]}"
+	msg_inf "Random fake site template: $(basename "$FAKE_SITE")"
+	mkdir -p /var/www/html
+	rm -rf /var/www/html/*
+	cp -a "$FAKE_SITE". /var/www/html/
+	msg_ok "Fake site installed successfully!"
+else
+	msg_err "Failed to download fake site templates!"
+fi
+rm -rf "$FAKE_SITE_TMP"
 
 ######################install_web_sub_page##############################################################
 
@@ -1161,11 +1150,8 @@ if systemctl is-active --quiet x-ui; then clear
  	echo -e "Username:  ${config_username} \n" 
 	echo -e "Password:  ${config_password} \n" 
 	msg_inf "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
-    msg_inf "Web Sub Page your first client: https://${domain}/${web_path}?name=${client_names[0]}\n"
+    msg_inf "Web Sub Page your first client: https://${domain}/${web_path}?name=first\n"
     msg_inf "Your local sub2sing-box instance: https://${domain}/$sub2singbox_path/\n"
-    msg_inf "Your local sub2sing-box instance: https://${domain}/$sub2singbox_path/\n"
-  msg_inf "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
-	msg_inf "Subscription: https://${domain}/${sub_path}/${client_names[0]}"
   msg_inf "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
 	msg_inf "Please Save this Screen!!"	
 else
